@@ -2,7 +2,7 @@ import os
 import numpy as np
 from datetime import datetime
 import sys
-
+sys.path.append('/media/mani/Data/gyy_workspace/asu_mini_proj/unitree_rl_gym')
 import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import get_args, task_registry

@@ -18,6 +18,9 @@ class GO2RoughCfg( LeggedRobotCfg ):
             'RL_calf_joint': -1.5,    # [rad]
             'FR_calf_joint': -1.5,  # [rad]
             'RR_calf_joint': -1.5,    # [rad]
+
+            'front_dorsal_joint': 0.0,
+            'back_dorsal_joint': 0.0,
         }
 
     class control( LeggedRobotCfg.control ):

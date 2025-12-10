@@ -1,9 +1,8 @@
 import sys
-from legged_gym import LEGGED_GYM_ROOT_DIR
 import os
-import sys
+sys.path.append('/media/mani/Data/gyy_workspace/asu_mini_proj/unitree_rl_gym')
 from legged_gym import LEGGED_GYM_ROOT_DIR
-
+from legged_gym import LEGGED_GYM_ROOT_DIR
 import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import  get_args, export_policy_as_jit, task_registry, Logger
