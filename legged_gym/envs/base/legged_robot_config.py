@@ -3,9 +3,10 @@ from .base_config import BaseConfig
 class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 4096
-        num_observations = 54       #former 48
+        num_observations = 48       #former 48
+        # add privileged obs for standup policy
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
-        num_actions = 14    #add 2 joint
+        num_actions = 12    #add 2 joint
         env_spacing = 3.  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
@@ -99,6 +100,7 @@ class LeggedRobotCfg(BaseConfig):
         max_push_vel_xy = 1.
 
     class rewards:
+        #original
         class scales:
             termination = -0.0
             tracking_lin_vel = 1.0
@@ -109,7 +111,7 @@ class LeggedRobotCfg(BaseConfig):
             torques = -0.00001
             dof_vel = -0.
             dof_acc = -2.5e-7
-            base_height = -0. 
+            base_height = -0. #-0.
             feet_air_time =  1.0
             collision = -1.
             feet_stumble = -0.0 
@@ -123,6 +125,7 @@ class LeggedRobotCfg(BaseConfig):
         soft_torque_limit = 1.
         base_height_target = 1.
         max_contact_force = 100. # forces above this value are penalized
+        
 
     class normalization:
         class obs_scales:

@@ -52,7 +52,6 @@ class LeggedRobot(BaseTask):
         Args:
             actions (torch.Tensor): Tensor of shape (num_envs, num_actions_per_env)
         """
-
         clip_actions = self.cfg.normalization.clip_actions
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
         # step physics and render each frame
@@ -187,9 +186,14 @@ class LeggedRobot(BaseTask):
                                     self.projected_gravity,
                                     self.commands[:, :3] * self.commands_scale,
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
+                                    # (self.dof_pos) * self.obs_scales.dof_pos,   #change to absolute value
                                     self.dof_vel * self.obs_scales.dof_vel,
                                     self.actions
                                     ),dim=-1)
+        # self.privileged_obs_buf = torch.cat((
+        #                             self.dof_pos,   #change to absolute value
+        #                             self.dof_vel,
+        #                             ),dim=-1)
         # add perceptive inputs if not blind
         # add noise if needed
         if self.add_noise:
@@ -288,6 +292,7 @@ class LeggedRobot(BaseTask):
             forward = quat_apply(self.base_quat, self.forward_vec)
             heading = torch.atan2(forward[:, 1], forward[:, 0])
             self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
+            # self.commands[:,2] = 0
 
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
@@ -301,6 +306,10 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 3] = torch_rand_float(self.command_ranges["heading"][0], self.command_ranges["heading"][1], (len(env_ids), 1), device=self.device).squeeze(1)
         else:
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
+
+        # just learn walk forward
+        self.commands[env_ids,0] = torch.abs(self.commands[env_ids,0])
+        self.commands[env_ids,1] = 0
 
         # set small commands to zero
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
@@ -338,6 +347,8 @@ class LeggedRobot(BaseTask):
             env_ids (List[int]): Environemnt ids
         """
         self.dof_pos[env_ids] = self.default_dof_pos * torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
+        # change to small randomization
+        # self.dof_pos[env_ids] = self.default_dof_pos * torch_rand_float(0.25, 1, (len(env_ids), self.num_dof), device=self.device)
         self.dof_vel[env_ids] = 0.
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
@@ -637,6 +648,10 @@ class LeggedRobot(BaseTask):
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
         return torch.square(self.base_lin_vel[:, 2])
+    
+    def _reward_lin_vel_xy(self):
+        # Penalize z axis base linear velocity
+        return torch.sum(torch.square(self.base_lin_vel[:, :2]),dim=1)
     
     def _reward_ang_vel_xy(self):
         # Penalize xy axes base angular velocity

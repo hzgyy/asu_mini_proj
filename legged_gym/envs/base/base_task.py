@@ -82,6 +82,11 @@ class BaseTask():
     def reset(self):
         """ Reset all robots"""
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
+        # reset_action = torch.tensor([0.1,0.1,-0.1,-0.1,0.8,1,0.8,1,-1.5,-1.5,-1.5,-1.5,0,0], device=self.device, requires_grad=False)
+        # reset_action = torch.tensor([0,0,0,0,1.15,1.15,1.15,1.15,-2.72,-2.72,-2.72,-2.72], device=self.device, requires_grad=False)
+        # reset_actions = reset_action.repeat(self.num_envs,1)
+        # for i in range(1000):
+        #     obs, privileged_obs, _, _, _ = self.step(reset_actions)
         obs, privileged_obs, _, _, _ = self.step(torch.zeros(self.num_envs, self.num_actions, device=self.device, requires_grad=False))
         return obs, privileged_obs
 
