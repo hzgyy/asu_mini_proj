@@ -108,7 +108,8 @@ Stephen Brawner (brawner@gmail.com)
   </link>
   <joint
     name="front_dorsal_joint"
-    type="revolute" dont_collapse="true">
+    type="fixed" dont_collapse="true">
+    <!-- type="revolute" dont_collapse="true"> -->
     <origin
       xyz="0 0 0"
       rpy="0 0 0" />
@@ -118,11 +119,11 @@ Stephen Brawner (brawner@gmail.com)
       link="spine" />
     <axis
       xyz="0 0 1" />
-    <limit
+    <!-- <limit
       lower="-1"
       upper="1"
       effort="60"
-      velocity="20.73" />
+      velocity="20.73" /> -->
   </joint>
   <link
     name="spine">
@@ -241,7 +242,8 @@ Stephen Brawner (brawner@gmail.com)
   </link>
   <joint
     name="back_dorsal_joint"
-    type="revolute" dont_collapse="true">
+    type="fixed" dont_collapse="true">
+    <!-- type="revolute" dont_collapse="true"> -->
     <origin
       xyz="0 0 0"
       rpy="0 0 0" />
@@ -251,11 +253,11 @@ Stephen Brawner (brawner@gmail.com)
       link="back_body" />
     <axis
       xyz="0 0 1" />
-    <limit
+    <!-- <limit
       lower="-0.5"
       upper="0.5"
       effort="60"
-      velocity="20.73" />
+      velocity="20.73" /> -->
   </joint>
   <link
     name="Head_upper">
@@ -495,8 +497,8 @@ Stephen Brawner (brawner@gmail.com)
     <limit
       lower="-2.7227"
       upper="-0.83776"
-      effort="35.55"
-      velocity="20.07" />
+      effort="45.43"
+      velocity="15.70" />
   </joint>
   <link
     name="FL_calflower">
@@ -754,8 +756,8 @@ Stephen Brawner (brawner@gmail.com)
     <limit
       lower="-2.7227"
       upper="-0.83776"
-      effort="35.55"
-      velocity="20.07" />
+      effort="45.43"
+      velocity="15.70" />
   </joint>
   <link
     name="FR_calflower">
@@ -1020,8 +1022,8 @@ Stephen Brawner (brawner@gmail.com)
     <limit
       lower="-2.7227"
       upper="-0.83776"
-      effort="35.55"
-      velocity="20.07" />
+      effort="45.43"
+      velocity="15.70" />
   </joint>
   <link
     name="RL_calflower">
@@ -1286,8 +1288,8 @@ Stephen Brawner (brawner@gmail.com)
     <limit
       lower="-2.7227"
       upper="-0.83776"
-      effort="35.55"
-      velocity="20.07" />
+      effort="45.43"
+      velocity="15.70" />
   </joint>
   <link
     name="RR_calflower">
