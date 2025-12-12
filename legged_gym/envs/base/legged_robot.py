@@ -292,7 +292,7 @@ class LeggedRobot(BaseTask):
             forward = quat_apply(self.base_quat, self.forward_vec)
             heading = torch.atan2(forward[:, 1], forward[:, 0])
             self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
-            # self.commands[:,2] = 0
+            self.commands[:,2] = 0
 
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
@@ -308,7 +308,7 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         # just learn walk forward
-        self.commands[env_ids,0] = torch.abs(self.commands[env_ids,0])
+        # self.commands[env_ids,0] = torch.abs(self.commands[env_ids,0])
         self.commands[env_ids,1] = 0
 
         # set small commands to zero

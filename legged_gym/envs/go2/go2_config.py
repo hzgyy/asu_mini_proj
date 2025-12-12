@@ -70,12 +70,20 @@ class GO2RoughCfg( LeggedRobotCfg ):
 
     #new robot
     class rewards( LeggedRobotCfg.rewards ):
-        soft_dof_pos_limit = 0.9
-        base_height_target = 0.25
+        soft_dof_pos_limit = 1
+        base_height_target = 0.3
+        max_contact_force = 150.
         class scales( LeggedRobotCfg.rewards.scales ):
             torques = -0.0002
-            dof_pos_limits = -10.0
-            base_height = -0.15
+            dof_pos_limits = -1.0
+            base_height = -15.
+            lin_vel_z = -1
+            feet_air_time = 1.
+    
+    class env( LeggedRobotCfg.env ):
+        num_observations = 48
+        num_actions = 12
+        episode_length_s = 20
             
     #standup policy
     # class rewards( LeggedRobotCfg.rewards ):
