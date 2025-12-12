@@ -62,8 +62,7 @@ class GO2RoughCfg( LeggedRobotCfg ):
         self_collisions = 1 # 1 to disable, 0 to enable...bitwise filter
   
     # class rewards( LeggedRobotCfg.rewards ):
-    #     soft_dof_pos_limit = 0.9
-    #     base_height_target = 0.25
+    #     soft_dof_pos_limit = 0.9task_registry.register( "go2", LeggedRobot, GO2RoughCfg(), GO2RoughCfgPPO())
     #     class scales( LeggedRobotCfg.rewards.scales ):
     #         torques = -0.0002
     #         dof_pos_limits = -10.0
@@ -84,6 +83,9 @@ class GO2RoughCfg( LeggedRobotCfg ):
         num_observations = 48
         num_actions = 12
         episode_length_s = 20
+
+    class terrain( LeggedRobotCfg.terrain ):
+        mesh_type = "plane"
             
     #standup policy
     # class rewards( LeggedRobotCfg.rewards ):
