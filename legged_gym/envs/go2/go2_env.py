@@ -182,14 +182,27 @@ class go2Robot(LeggedRobot):
             start_pose.p = gymapi.Vec3(*pos)
             self.gym.create_actor(env, sphere_asset, start_pose, "sphere", i, 1)
 
+    # def _reward_tracking_pos(self):
+    #     x_error = torch.square(self.relative_pos[:,0]-3)
+    #     y_error1 = torch.square(self.relative_pos[:,1])
+    #     y_error = torch.square(self.relative_pos[:,1]-3)
+    #     reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma) - y_error1
+    #     reward_phase_2 = torch.where(x_error<0.25, torch.exp(-y_error/self.cfg.rewards.tracking_sigma),torch.zeros_like(y_error))
+    #     reward = reward_phase_1 + reward_phase_2*2
+    #     return reward
+
     def _reward_tracking_pos(self):
         x_error = torch.square(self.relative_pos[:,0]-3)
         y_error1 = torch.square(self.relative_pos[:,1])
-        y_error = torch.square(self.relative_pos[:,1]-3)
         reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma) - y_error1
+        return reward_phase_1
+    
+    def _reward_tracking_pos2(self):
+        x_error = torch.square(self.relative_pos[:,0]-3)
+        y_error = torch.square(self.relative_pos[:,1]-3)
         reward_phase_2 = torch.where(x_error<0.25, torch.exp(-y_error/self.cfg.rewards.tracking_sigma),torch.zeros_like(y_error))
-        reward = reward_phase_1 + reward_phase_2*2
-        return reward
+        return reward_phase_2
+
     
     def _reward_tracking_heading(self):
         x_error = torch.square(self.relative_pos[:,0]-3)
