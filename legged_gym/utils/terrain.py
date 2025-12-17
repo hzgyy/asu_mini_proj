@@ -156,11 +156,11 @@ def pit_terrain(terrain, depth, platform_size=1.):
     y2 = terrain.width // 2 + platform_size
     terrain.height_field_raw[x1:x2, y1:y2] = -depth
 
-class Terrain_new(Terrain):
-    def make_terrain(self, choice, difficulty):
-        terrain = terrain_utils.SubTerrain(   "terrain",
-                                width=self.width_per_env_pixels,
-                                length=self.width_per_env_pixels,
-                                vertical_scale=self.cfg.vertical_scale,
-                                horizontal_scale=self.cfg.horizontal_scale)
+# class Terrain_new(Terrain):
+#     def make_terrain(self, choice, difficulty):
+#         terrain = terrain_utils.SubTerrain(   "terrain",
+#                                 width=self.width_per_env_pixels,
+#                                 length=self.width_per_env_pixels,
+#                                 vertical_scale=self.cfg.vertical_scale,
+#                                 horizontal_scale=self.cfg.horizontal_scale)
         

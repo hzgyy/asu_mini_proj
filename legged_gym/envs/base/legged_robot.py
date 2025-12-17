@@ -98,6 +98,7 @@ class LeggedRobot(BaseTask):
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         forward = quat_apply(self.base_quat, self.forward_vec)
         self.heading = torch.atan2(forward[:, 1], forward[:, 0])
+        self.relative_pos[:] = self.root_states[:self.num_envs, 0:3] - self.env_origins[:]
 
         self._post_physics_step_callback()
 
@@ -486,6 +487,7 @@ class LeggedRobot(BaseTask):
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         self.heading = torch.zeros((self.num_envs,1),dtype=torch.float, device=self.device, requires_grad=False)
+        self.relative_pos = torch.zeros((self.num_envs,3),dtype=torch.float, device=self.device, requires_grad=False)
       
 
         # joint positions offsets and PD gains
@@ -599,25 +601,6 @@ class LeggedRobot(BaseTask):
         env_upper = gymapi.Vec3(0., 0., 0.)
         self.actor_handles = []
         self.envs = []
-        # add obstacles
-        # create table asset
-        table_dims = gymapi.Vec3(0.5, 1.0, 0.4)
-        asset_options = gymapi.AssetOptions()
-        asset_options.fix_base_link = True
-        table_asset = self.gym.create_box(self.sim, table_dims.x, table_dims.y, table_dims.z, asset_options)
-        table_pose = gymapi.Transform()
-        table_pose.p = gymapi.Vec3(0.5, 0.0, 0.5 * table_dims.z)
-
-        # 设置球颜色（可选）
-        sphere_geom_params = gymapi.AssetOptions()
-        sphere_geom_params.disable_gravity = True   # 不受重力影响
-        sphere_geom_params.fix_base_link = True     # 固定不动
-        # 创建 asset（球体）
-        sphere_asset = self.gym.create_sphere(self.sim,0.27, sphere_geom_params)
-        # 设定球位置
-        sphere_pose = gymapi.Transform()
-        sphere_pose.p = gymapi.Vec3(0.5, 0.0, 0.5 * table_dims.z)   # x,y,z 位置
-        sphere_pose.r = gymapi.Quat(0,0,0,1)         # 无旋转
         for i in range(self.num_envs):
             # create env instance
             env_handle = self.gym.create_env(self.sim, env_lower, env_upper, int(np.sqrt(self.num_envs)))
@@ -648,7 +631,6 @@ class LeggedRobot(BaseTask):
         for i in range(len(termination_contact_names)):
             self.termination_contact_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], termination_contact_names[i])
         
-        # table_handle = self.gym.create_actor(env_handle, table_asset, table_pose, "table", -1, 1)
 
 
 
