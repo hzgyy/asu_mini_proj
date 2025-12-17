@@ -96,6 +96,8 @@ class LeggedRobot(BaseTask):
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        forward = quat_apply(self.base_quat, self.forward_vec)
+        self.heading = torch.atan2(forward[:, 1], forward[:, 0])
 
         self._post_physics_step_callback()
 
@@ -483,6 +485,7 @@ class LeggedRobot(BaseTask):
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 7:10])
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        self.heading = torch.zeros((self.num_envs,1),dtype=torch.float, device=self.device, requires_grad=False)
       
 
         # joint positions offsets and PD gains

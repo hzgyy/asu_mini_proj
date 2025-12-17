@@ -48,7 +48,7 @@ class go2Robot(LeggedRobot):
                                     # self.commands[:, :3] * self.commands_scale,
                                     #change to relative position
                                     self.base_pos - self.base_init_state[:3],
-                                    self.base_quat,
+                                    self.heading.unsqueeze(-1),
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
                                     # (self.dof_pos) * self.obs_scales.dof_pos,   #change to absolute value
                                     self.dof_vel * self.obs_scales.dof_vel,
@@ -68,14 +68,16 @@ class go2Robot(LeggedRobot):
         y_error1 = torch.square(self.base_pos[:,1])
         y_error = torch.square(self.base_pos[:,1]-3)
         reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma) - y_error1
-        reward_phase_2 = torch.where(x_error<0.5, torch.exp(-y_error/self.cfg.rewards.tracking_sigma),torch.zeros_like(y_error))
-        reward = reward_phase_1 + reward_phase_2
-        print(reward_phase_1,reward_phase_2,torch.exp(-x_error/self.cfg.rewards.tracking_sigma),y_error1)
+        reward_phase_2 = torch.where(x_error<0.25, torch.exp(-y_error/self.cfg.rewards.tracking_sigma),torch.zeros_like(y_error))
+        reward = reward_phase_1 + reward_phase_2*2
         return reward
     
-    # def _reward_heading(self):
-    #     desired_pos1 = torch.tensor([3,0],device=self.device)
-    #     desired_pos2 = torch.tensor([3,3],device=self.device)
+    def _reward_tracking_heading(self):
+        x_error = torch.square(self.base_pos[:,0]-3)
+        desired_y = torch.where(x_error<0.25, 3,0)
+        desired_heading = torch.atan2(desired_y-self.base_pos[:,1],3-self.base_pos[:,0])
+        reward = -torch.square(desired_heading-self.heading)
+        return reward
 
 
     

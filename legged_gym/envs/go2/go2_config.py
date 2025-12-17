@@ -83,11 +83,12 @@ class GO2RoughCfg( LeggedRobotCfg ):
             tracking_lin_vel = 0.
             tracking_ang_vel = 0.
             tracking_pos = 5.0
+            tracking_heading = 1.0
     
     class env( LeggedRobotCfg.env ):
-        num_observations = 58
+        num_observations = 55
         num_actions = 14
-        episode_length_s = 10
+        episode_length_s = 20
 
     class terrain( LeggedRobotCfg.terrain ):
         mesh_type = "plane"
