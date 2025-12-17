@@ -191,7 +191,6 @@ class LeggedRobot(BaseTask):
                                     self.dof_vel * self.obs_scales.dof_vel,
                                     self.actions
                                     ),dim=-1)
-        print(self.contact_forces[:23])
         # self.privileged_obs_buf = torch.cat((
         #                             self.dof_pos,   #change to absolute value
         #                             self.dof_vel,

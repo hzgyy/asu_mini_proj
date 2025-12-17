@@ -12,57 +12,68 @@ class go2Robot(LeggedRobot):
     
     def compute_reward(self):
         return super().compute_reward()
-    
-    def create_sim(self):
-        """ Creates simulation, terrain and evironments
+
+    def _reset_dofs(self, env_ids):
+        """ Resets DOF position and velocities of selected environmments
+        Positions are randomly selected within 0.5:1.5 x default positions.
+        Velocities are set to zero.
+
+        Args:
+            env_ids (List[int]): Environemnt ids
         """
-        self.up_axis_idx = 2 # 2 for z, 1 for y -> adapt gravity accordingly
-        self.sim = self.gym.create_sim(self.sim_device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
-        mesh_type = self.cfg.terrain.mesh_type
-        if mesh_type in ['heightfield', 'trimesh']:
-            self.terrain = Terrain(self.cfg.terrain, self.num_envs)
-        if mesh_type=='plane':
-            self._create_ground_plane()
-        elif mesh_type=='heightfield':
-            self._create_heightfield()
-        elif mesh_type=='trimesh':
-            self._create_trimesh()
-        elif mesh_type is not None:
-            raise ValueError("Terrain mesh type not recognised. Allowed types are [None, plane, heightfield, trimesh]")
-        self._create_envs()
+        self.dof_pos[env_ids] = self.default_dof_pos
+        # change to small randomization
+        # self.dof_pos[env_ids] = self.default_dof_pos * torch_rand_float(0.25, 1, (len(env_ids), self.num_dof), device=self.device)
+        self.dof_vel[env_ids] = 0.
 
-    def _create_heightfield(self):
-        """ Adds a heightfield terrain to the simulation, sets parameters based on the cfg.
-        """
-        hf_params = gymapi.HeightFieldParams()
-        hf_params.column_scale = self.terrain.cfg.horizontal_scale
-        hf_params.row_scale = self.terrain.cfg.horizontal_scale
-        hf_params.vertical_scale = self.terrain.cfg.vertical_scale
-        hf_params.nbRows = self.terrain.tot_cols
-        hf_params.nbColumns = self.terrain.tot_rows 
-        hf_params.transform.p.x = -self.terrain.cfg.border_size 
-        hf_params.transform.p.y = -self.terrain.cfg.border_size
-        hf_params.transform.p.z = 0.0
-        hf_params.static_friction = self.cfg.terrain.static_friction
-        hf_params.dynamic_friction = self.cfg.terrain.dynamic_friction
-        hf_params.restitution = self.cfg.terrain.restitution
+        env_ids_int32 = env_ids.to(dtype=torch.int32)
+        self.gym.set_dof_state_tensor_indexed(self.sim,
+                                              gymtorch.unwrap_tensor(self.dof_state),
+                                              gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
-        self.gym.add_heightfield(self.sim, self.terrain.heightsamples, hf_params)
-        self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+    def _reset_root_states(self, env_ids):
+        self.root_states[env_ids] = self.base_init_state
+        self.root_states[env_ids, 7:13] = 0
+        env_ids_int32 = env_ids.to(dtype=torch.int32)
+        self.gym.set_actor_root_state_tensor_indexed(self.sim,
+                                                     gymtorch.unwrap_tensor(self.root_states),
+                                                     gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
     
-    def _create_trimesh(self):
-        """ Adds a triangle mesh terrain to the simulation, sets parameters based on the cfg.
-        # """
-        tm_params = gymapi.TriangleMeshParams()
-        tm_params.nb_vertices = self.terrain.vertices.shape[0]
-        tm_params.nb_triangles = self.terrain.triangles.shape[0]
+    def compute_observations(self):
+        """ Computes observations
+        """
+        self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
+                                    self.base_ang_vel  * self.obs_scales.ang_vel,
+                                    self.projected_gravity,
+                                    # self.commands[:, :3] * self.commands_scale,
+                                    #change to relative position
+                                    self.base_pos - self.base_init_state[:3],
+                                    self.base_quat,
+                                    (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
+                                    # (self.dof_pos) * self.obs_scales.dof_pos,   #change to absolute value
+                                    self.dof_vel * self.obs_scales.dof_vel,
+                                    self.actions
+                                    ),dim=-1)
+        # self.privileged_obs_buf = torch.cat((
+        #                             self.dof_pos,   #change to absolute value
+        #                             self.dof_vel,
+        #                             ),dim=-1)
+        # add perceptive inputs if not blind
+        # add noise if needed
+        if self.add_noise:
+            self.obs_buf += (2 * torch.rand_like(self.obs_buf) - 1) * self.noise_scale_vec
 
-        tm_params.transform.p.x = -self.terrain.cfg.border_size 
-        tm_params.transform.p.y = -self.terrain.cfg.border_size
-        tm_params.transform.p.z = 0.0
-        tm_params.static_friction = self.cfg.terrain.static_friction
-        tm_params.dynamic_friction = self.cfg.terrain.dynamic_friction
-        tm_params.restitution = self.cfg.terrain.restitution
-        self.gym.add_triangle_mesh(self.sim, self.terrain.vertices.flatten(order='C'), self.terrain.triangles.flatten(order='C'), tm_params)   
-        self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
+    def _reward_tracking_pos(self):
+        x_error = torch.square(self.base_pos[:,0]-3)
+        y_error = torch.square(self.base_pos[:,1]-3)
+        reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma)
+        reward_phase_2 = torch.where(x_error<0.5, torch.exp(-y_error/self.cfg.rewards.tracking_sigma),torch.zeros_like(y_error))
+        reward = reward_phase_1 + reward_phase_2
+        # print(reward_phase_1,reward_phase_2)
+        return reward
+    
+    # def _reward_tracking_lin_vel(self):
+    #     desired_pos1 = torch.tensor([3,0],device=self.device)
+    #     desired_pos2 = torch.tensor([3,3],device=self.device)
+
     

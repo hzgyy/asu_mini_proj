@@ -163,3 +163,4 @@ class Terrain_new(Terrain):
                                 length=self.width_per_env_pixels,
                                 vertical_scale=self.cfg.vertical_scale,
                                 horizontal_scale=self.cfg.horizontal_scale)
+        

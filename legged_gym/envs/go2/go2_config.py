@@ -72,17 +72,22 @@ class GO2RoughCfg( LeggedRobotCfg ):
         soft_dof_pos_limit = 1
         base_height_target = 0.3
         max_contact_force = 150.
+        tracking_sigma = 5
+        only_positive_rewards = False
         class scales( LeggedRobotCfg.rewards.scales ):
             torques = -0.0002
             dof_pos_limits = -1.0
             base_height = -15.
             lin_vel_z = -1
             feet_air_time = 1.
+            tracking_lin_vel = 0.
+            tracking_ang_vel = 0.
+            tracking_pos = 5.0
     
     class env( LeggedRobotCfg.env ):
-        num_observations = 48
-        num_actions = 12
-        episode_length_s = 20
+        num_observations = 58
+        num_actions = 14
+        episode_length_s = 10
 
     class terrain( LeggedRobotCfg.terrain ):
         mesh_type = "plane"
