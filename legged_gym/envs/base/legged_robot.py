@@ -96,9 +96,13 @@ class LeggedRobot(BaseTask):
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        #add more
         forward = quat_apply(self.base_quat, self.forward_vec)
         self.heading = torch.atan2(forward[:, 1], forward[:, 0])
         self.relative_pos[:] = self.root_states[:self.num_envs, 0:3] - self.env_origins[:]
+        self.x_error = torch.square(self.relative_pos[:, 0] - self.cfg.env.desired_x)
+        self.y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
+        self.success = (self.x_error+self.y_error < 0.1).float()
 
         self._post_physics_step_callback()
 
@@ -486,8 +490,12 @@ class LeggedRobot(BaseTask):
         self.base_lin_vel = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 7:10])
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+        # add new
         self.heading = torch.zeros((self.num_envs,1),dtype=torch.float, device=self.device, requires_grad=False)
         self.relative_pos = torch.zeros((self.num_envs,3),dtype=torch.float, device=self.device, requires_grad=False)
+        self.success = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
+        self.x_error = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
+        self.y_error = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
       
 
         # joint positions offsets and PD gains

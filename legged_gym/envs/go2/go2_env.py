@@ -33,6 +33,50 @@ class go2Robot(LeggedRobot):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
+    # def post_physics_step(self):
+    #     """ check terminations, compute observations and rewards
+    #         calls self._post_physics_step_callback() for common computations
+    #         calls self._draw_debug_vis() if needed
+    #     """
+    #     self.gym.refresh_actor_root_state_tensor(self.sim)
+    #     self.gym.refresh_net_contact_force_tensor(self.sim)
+    #
+    #     self.episode_length_buf += 1
+    #     self.common_step_counter += 1
+    #
+    #     # prepare quantities
+    #     self.base_pos[:] = self.root_states[:self.num_envs, 0:3]
+    #     self.base_quat[:] = self.root_states[:self.num_envs, 3:7]
+    #     self.rpy[:] = get_euler_xyz_in_tensor(self.base_quat[:])
+    #     self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 7:10])
+    #     self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:self.num_envs, 10:13])
+    #     self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
+    #     #add more
+    #     forward = quat_apply(self.base_quat, self.forward_vec)
+    #     self.heading = torch.atan2(forward[:, 1], forward[:, 0])
+    #     self.relative_pos[:] = self.root_states[:self.num_envs, 0:3] - self.env_origins[:]
+    #     self.x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+    #     self.y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
+    #
+    #
+    #     self._post_physics_step_callback()
+    #
+    #     # compute observations, rewards, resets, ...
+    #     self.check_termination()
+    #     self.compute_reward()
+    #     # assert False, self.reset_buf
+    #     env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
+    #     self.reset_idx(env_ids)
+    #
+    #     if self.cfg.domain_rand.push_robots:
+    #         self._push_robots()
+    #
+    #     self.compute_observations() # in some cases a simulation step might be required to refresh some obs (for example body positions)
+    #
+    #     self.last_actions[:] = self.actions[:]
+    #     self.last_dof_vel[:] = self.dof_vel[:]
+    #     self.last_root_vel[:] = self.root_states[:self.num_envs, 7:13]
+
     def _reset_root_states(self, env_ids):
         self.root_states[env_ids] = self.base_init_state
         self.root_states[env_ids, :3] += self.env_origins[env_ids]
@@ -65,6 +109,11 @@ class go2Robot(LeggedRobot):
         # add noise if needed
         if self.add_noise:
             self.obs_buf += (2 * torch.rand_like(self.obs_buf) - 1) * self.noise_scale_vec
+
+    def _update_terrain_curriculum(self,env_ids):
+        if not self.init_done:
+            return
+        
 
     def _create_envs(self):
         """ Creates environments:
@@ -125,25 +174,44 @@ class go2Robot(LeggedRobot):
         env_upper = gymapi.Vec3(-spacing, spacing, 0.)
         self.actor_handles = []
         self.envs = []
-        # # add obstacles
-        # # create table asset
-        # table_dims = gymapi.Vec3(0.5, 1.0, 0.4)
-        # asset_options = gymapi.AssetOptions()
-        # asset_options.fix_base_link = True
-        # table_asset = self.gym.create_box(self.sim, table_dims.x, table_dims.y, table_dims.z, asset_options)
-        # table_pose = gymapi.Transform()
-        # table_pose.p = gymapi.Vec3(0.5, 0.0, 0.5 * table_dims.z)
+        # add obstacles
+        # create table asset
+        asset_options = gymapi.AssetOptions()
+        asset_options.fix_base_link = True
+        #wall1
+        wall1_dims = gymapi.Vec3(4.6, 4.6, 0.5)
+        wall1_asset = self.gym.create_box(self.sim, wall1_dims.x, wall1_dims.y, wall1_dims.z, asset_options)
+        # wall1_pose = torch.tensor([9.8,4.3,0.5*wall1_dims.z],device=self.device,requires_grad=False)
+        wall1_pose = torch.tensor([2,2.8,0.5*wall1_dims.z],device=self.device,requires_grad=False)
+        # wall1_pose = gymapi.Transform()
+        # wall1_pose.p = gymapi.Vec3(8.8, 4.3, 0.5 * wall1_dims.z)
+        #wall 2
+        wall2_dims = gymapi.Vec3(6.6, 1, 0.5)
+        wall2_asset = self.gym.create_box(self.sim, wall2_dims.x, wall2_dims.y, wall2_dims.z, asset_options)
+        # wall2_pose = torch.tensor([10.8,0.5,0.5*wall2_dims.z],device=self.device,requires_grad=False)
+        wall2_pose = torch.tensor([3,-1,0.5*wall2_dims.z],device=self.device,requires_grad=False)
+        # wall2_pose = gymapi.Transform()
+        # wall2_pose.p = gymapi.Vec3(9.8, 0.5, 0.5 * wall2_dims.z)
+        #wall 3
+        wall3_dims = gymapi.Vec3(1, 5.6, 0.5)
+        wall3_asset = self.gym.create_box(self.sim, wall3_dims.x, wall3_dims.y, wall3_dims.z, asset_options)
+        # wall3_pose = torch.tensor([13.6,3.8,0.5*wall1_dims.z],device=self.device,requires_grad=False)
+        wall3_pose = torch.tensor([5.8,2.3,0.5*wall1_dims.z],device=self.device,requires_grad=False)
+        # wall2_pose = gymapi.Transform()
+        # wall2_pose.p = gymapi.Vec3(12.6, 3.8, 0.5 * wall2_dims.z)
+        wall_assets = [wall1_asset,wall2_asset,wall3_asset]
+        wall_poses = [wall1_pose,wall2_pose,wall3_pose]
 
         # 设置球颜色（可选）
-        sphere_geom_params = gymapi.AssetOptions()
-        sphere_geom_params.disable_gravity = True   # 不受重力影响
-        sphere_geom_params.fix_base_link = True     # 固定不动
-        # 创建 asset（球体）
-        sphere_asset = self.gym.create_sphere(self.sim,0.27, sphere_geom_params)
-        # 设定球位置
-        sphere_pose = gymapi.Transform()
-        sphere_pose.p = gymapi.Vec3(0, 0.0, 0.0)   # x,y,z 位置
-        sphere_pose.r = gymapi.Quat(0,0,0,1)         # 无旋转
+        # sphere_geom_params = gymapi.AssetOptions()
+        # sphere_geom_params.disable_gravity = True   # 不受重力影响
+        # sphere_geom_params.fix_base_link = True     # 固定不动
+        # # 创建 asset（球体）
+        # sphere_asset = self.gym.create_sphere(self.sim,0.2, sphere_geom_params)
+        # # 设定球位置
+        # sphere_pose = gymapi.Transform()
+        # sphere_pose.p = gymapi.Vec3(0, 0.0, 0.0)   # x,y,z 位置
+        # sphere_pose.r = gymapi.Quat(0,0,0,1)         # 无旋转
         for i in range(self.num_envs):
             # create env instance
             env_handle = self.gym.create_env(self.sim, env_lower, env_upper, int(np.sqrt(self.num_envs)))
@@ -178,9 +246,12 @@ class go2Robot(LeggedRobot):
         #create obstacles
         for i,env  in enumerate(self.envs):
             pos = self.env_origins[i].clone()
-            pos[1] += 2
-            start_pose.p = gymapi.Vec3(*pos)
-            self.gym.create_actor(env, sphere_asset, start_pose, "sphere", i, 1)
+            for j,(asset,pose) in enumerate(zip(wall_assets,wall_poses)):
+                box_pose = pose.clone()
+                box_pose += pos
+                start_pose.p = gymapi.Vec3(*box_pose)
+                self.gym.create_actor(env, asset, start_pose, f"wall{j}", i, 1)
+
 
     # def _reward_tracking_pos(self):
     #     x_error = torch.square(self.relative_pos[:,0]-3)
@@ -192,24 +263,35 @@ class go2Robot(LeggedRobot):
     #     return reward
 
     def _reward_tracking_pos(self):
-        x_error = torch.square(self.relative_pos[:,0]-3)
-        y_error1 = torch.square(self.relative_pos[:,1])
-        reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma) - y_error1
+        # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+        x_error = self.x_error
+        reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma)
         return reward_phase_1
     
     def _reward_tracking_pos2(self):
-        x_error = torch.square(self.relative_pos[:,0]-3)
-        y_error = torch.square(self.relative_pos[:,1]-3)
-        reward_phase_2 = torch.where(x_error<0.25, torch.exp(-y_error/self.cfg.rewards.tracking_sigma),torch.zeros_like(y_error))
+        # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+        # y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
+        x_error = self.x_error
+        y_error = self.y_error
+        y_error1 = torch.square(self.relative_pos[:,1])
+        reward_phase_2 = torch.where(x_error<0.125, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*2, - y_error1)
         return reward_phase_2
 
     
     def _reward_tracking_heading(self):
-        x_error = torch.square(self.relative_pos[:,0]-3)
-        desired_y = torch.where(x_error<0.25, 3,0)
-        desired_heading = torch.atan2(desired_y-self.relative_pos[:,1],3-self.relative_pos[:,0])
+        # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+        x_error = self.x_error
+        desired_y = torch.where(x_error<0.125, self.cfg.env.desired_y,0)
+        desired_heading = torch.atan2(desired_y-self.relative_pos[:,1],self.cfg.env.desired_x-self.relative_pos[:,0])
         reward = -torch.square(desired_heading-self.heading)
         return reward
 
-
-    
+    def _reward_final(self):
+        # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+        # y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
+        x_error = self.x_error
+        y_error = self.y_error
+        reward = torch.zeros_like(x_error)
+        mask = (x_error + y_error) < 0.1
+        reward[mask] = 50.0
+        return reward
