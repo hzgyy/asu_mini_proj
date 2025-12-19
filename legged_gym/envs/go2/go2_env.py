@@ -262,6 +262,16 @@ class go2Robot(LeggedRobot):
     #     reward = reward_phase_1 + reward_phase_2*2
     #     return reward
 
+    def check_termination(self):
+        """ Check if environments need to be reset
+        """
+        self.reset_buf = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
+        self.reset_buf |= torch.logical_or(torch.abs(self.rpy[:,1])>1.0, torch.abs(self.rpy[:,0])>0.8)
+        self.time_out_buf = self.episode_length_buf > self.max_episode_length # no terminal reward for time-outs
+        self.reset_buf |= self.time_out_buf
+        self.reset_buf |= self.success
+
+
     def _reward_tracking_pos(self):
         # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
         x_error = self.x_error
@@ -289,9 +299,9 @@ class go2Robot(LeggedRobot):
     def _reward_final(self):
         # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
         # y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
-        x_error = self.x_error
-        y_error = self.y_error
-        reward = torch.zeros_like(x_error)
-        mask = (x_error + y_error) < 0.1
-        reward[mask] = 50.0
-        return reward
+        # x_error = self.x_error
+        # y_error = self.y_error
+        # reward = torch.zeros_like(x_error)
+        # mask = (x_error + y_error) < 0.1
+        # reward[mask] = 50.0
+        return self.success.float()
