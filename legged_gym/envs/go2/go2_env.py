@@ -321,17 +321,24 @@ class go2Robot(LeggedRobot):
 
     def _reward_tracking_pos(self):
         # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
-        x_error = self.x_error
+        # x_error = self.x_error
+        # reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma)
+        # return reward_phase_1
+        x_error = torch.abs(self.relative_pos[:,0]-self.cfg.env.desired_x)
         reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma)
         return reward_phase_1
     
     def _reward_tracking_pos2(self):
         # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
         # y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
-        x_error = self.x_error
-        y_error = self.y_error
-        y_error1 = torch.square(self.relative_pos[:,1])
-        reward_phase_2 = torch.where(x_error<0.25, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*2 + torch.exp(-y_error)*2, - y_error1)
+        # x_error = self.x_error
+        # y_error = self.y_error
+        # y_error1 = torch.square(self.relative_pos[:,1])
+        # reward_phase_2 = torch.where(x_error<0.25, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*2 + torch.exp(-y_error)*2, - y_error1)
+        x_error = torch.abs(self.relative_pos[:,0]-self.cfg.env.desired_x)
+        y_error = torch.abs(self.relative_pos[:,1]-self.cfg.env.desired_y)
+        y_error1 = torch.abs(self.relative_pos[:,1])
+        reward_phase_2 = torch.where(x_error<0.5, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*2 + torch.exp(-y_error)*2, - y_error1)
         return reward_phase_2
 
     
