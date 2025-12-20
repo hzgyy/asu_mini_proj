@@ -57,8 +57,8 @@ class GO2RoughCfg( LeggedRobotCfg ):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/go2/urdf/go2.urdf'
         name = "go2"
         foot_name = "foot"
-        penalize_contacts_on = ["thigh", "calf"]
-        terminate_after_contacts_on = ["base"]
+        # penalize_contacts_on = ["thigh", "calf"]
+        terminate_after_contacts_on = ["base","thigh","calf","Head","hip","spine"]
         self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
   
     # class rewards( LeggedRobotCfg.rewards ):
@@ -74,18 +74,19 @@ class GO2RoughCfg( LeggedRobotCfg ):
         max_contact_force = 150.
         tracking_sigma = 10
         only_positive_rewards = False
+        pos2_scale = 4.0
         class scales( LeggedRobotCfg.rewards.scales ):
             torques = -0.0002
             dof_pos_limits = -1.0
             base_height = -30.
             lin_vel_z = -1
             collision = -5
-            feet_air_time = 1.
+            feet_air_time = 0.5
             tracking_lin_vel = 0.
             tracking_ang_vel = 0.
             tracking_pos = 5.0*1.5
             tracking_pos2 = 5.0*1.5
-            tracking_heading = 1.0
+            tracking_heading = 2.0
             final = 50.0
     
     class env( LeggedRobotCfg.env ):
@@ -95,6 +96,7 @@ class GO2RoughCfg( LeggedRobotCfg ):
         env_spacing = 10
         desired_x = 4.8
         desired_y = 4.8
+        turn_threshold = 0.125
 
     class terrain( LeggedRobotCfg.terrain ):
         mesh_type = "plane"

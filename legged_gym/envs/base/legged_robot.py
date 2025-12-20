@@ -102,7 +102,8 @@ class LeggedRobot(BaseTask):
         self.relative_pos[:] = self.root_states[:self.num_envs, 0:3] - self.env_origins[:]
         self.x_error = torch.square(self.relative_pos[:, 0] - self.cfg.env.desired_x)
         self.y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
-        self.success = (self.x_error+self.y_error < 0.1)
+        # self.success = (self.x_error+self.y_error < 0.1)
+        self.success = torch.sum(torch.square(self.relative_pos[:, :2] - self.goal),dim=-1) < 0.1
 
         self._post_physics_step_callback()
 
@@ -496,6 +497,7 @@ class LeggedRobot(BaseTask):
         self.success = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
         self.x_error = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
         self.y_error = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
+        self.goal = torch.tensor([4.8,4.8], device=self.device, requires_grad=False)
       
 
         # joint positions offsets and PD gains

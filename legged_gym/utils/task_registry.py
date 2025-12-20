@@ -99,7 +99,7 @@ class TaskRegistry():
             if name is None:
                 raise ValueError("Either 'name' or 'train_cfg' must be not None")
             # load config files
-            _, train_cfg = self.get_cfgs(name)
+            env_cfg, train_cfg = self.get_cfgs(name)
         else:
             if name is not None:
                 print(f"'train_cfg' provided -> Ignoring 'name={name}'")
@@ -115,10 +115,11 @@ class TaskRegistry():
             log_dir = os.path.join(log_root, datetime.now().strftime('%b%d_%H-%M-%S') + '_' + train_cfg.runner.run_name)
         
         train_cfg_dict = class_to_dict(train_cfg)
+        env_cfg_dict = class_to_dict(env_cfg)
         if args.tensorboard:
-            runner = OnPolicyRunner(env, train_cfg_dict, log_dir, device=args.rl_device)
+            runner = OnPolicyRunner(env, train_cfg_dict, env_cfg_dict,log_dir, device=args.rl_device)
         else:
-            runner = OnPolicyRunnerWandb(env, train_cfg_dict, log_dir, device=args.rl_device)
+            runner = OnPolicyRunnerWandb(env, train_cfg_dict, env_cfg_dict,log_dir, device=args.rl_device)
         #save resume path before creating a new log_dir
         resume = train_cfg.runner.resume
         if resume:

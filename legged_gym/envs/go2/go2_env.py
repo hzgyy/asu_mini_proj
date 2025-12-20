@@ -284,14 +284,14 @@ class go2Robot(LeggedRobot):
         x_error = self.x_error
         y_error = self.y_error
         y_error1 = torch.square(self.relative_pos[:,1])
-        reward_phase_2 = torch.where(x_error<0.125, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*2, - y_error1)
+        reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*self.cfg.rewards.pos2_scale, - y_error1)
         return reward_phase_2
 
     
     def _reward_tracking_heading(self):
         # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
         x_error = self.x_error
-        desired_y = torch.where(x_error<0.125, self.cfg.env.desired_y,0)
+        desired_y = torch.where(x_error<self.cfg.env.turn_threshold+1, self.cfg.env.desired_y,0)
         desired_heading = torch.atan2(desired_y-self.relative_pos[:,1],self.cfg.env.desired_x-self.relative_pos[:,0])
         reward = -torch.square(desired_heading-self.heading)
         return reward
