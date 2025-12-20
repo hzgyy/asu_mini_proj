@@ -284,7 +284,9 @@ class go2Robot(LeggedRobot):
         x_error = self.x_error
         y_error = self.y_error
         y_error1 = torch.square(self.relative_pos[:,1])
-        reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*self.cfg.rewards.pos2_scale, - y_error1)
+        y_error2 = torch.abs(self.relative_pos[:,1])
+        # reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*self.cfg.rewards.pos2_scale, - y_error1)
+        reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(y_error2/2.5)*self.cfg.rewards.pos2_scale, - y_error1)
         return reward_phase_2
 
     
@@ -305,3 +307,8 @@ class go2Robot(LeggedRobot):
         # mask = (x_error + y_error) < 0.1
         # reward[mask] = 50.0
         return self.success.float()
+    
+    def _reward_speed(self):
+        speed = torch.sum(torch.square(self.base_lin_vel[:,:2]),dim=1)
+        reward = torch.exp(-speed*2)
+        return reward

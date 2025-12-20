@@ -74,7 +74,7 @@ class GO2RoughCfg( LeggedRobotCfg ):
         max_contact_force = 150.
         tracking_sigma = 10
         only_positive_rewards = False
-        pos2_scale = 4.0
+        pos2_scale = 2.0
         class scales( LeggedRobotCfg.rewards.scales ):
             torques = -0.0002
             dof_pos_limits = -1.0
@@ -87,19 +87,24 @@ class GO2RoughCfg( LeggedRobotCfg ):
             tracking_pos = 5.0*1.5
             tracking_pos2 = 5.0*1.5
             tracking_heading = 2.0
-            final = 50.0
+            final = 1000.0
+            speed = -2.
     
     class env( LeggedRobotCfg.env ):
         num_observations = 55
         num_actions = 14
         episode_length_s = 20
         env_spacing = 10
-        desired_x = 4.8
+        desired_x = 4.7
         desired_y = 4.8
-        turn_threshold = 0.125
+        turn_threshold = 0.15
 
     class terrain( LeggedRobotCfg.terrain ):
         mesh_type = "plane"
+
+    class domain_rand( LeggedRobotCfg.domain_rand ):
+        push_interval_s = 10
+        max_push_vel_xy = 2.0
             
     #standup policy
     # class rewards( LeggedRobotCfg.rewards ):
