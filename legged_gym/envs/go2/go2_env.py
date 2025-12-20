@@ -80,7 +80,10 @@ class go2Robot(LeggedRobot):
     def _reset_root_states(self, env_ids):
         self.root_states[env_ids] = self.base_init_state
         self.root_states[env_ids, :3] += self.env_origins[env_ids]
-        self.root_states[env_ids, 7:13] = 0
+        # self.root_states[env_ids, 7:13] = 0
+        low = torch.tensor([-0.,0.],device = self.device)
+        high = torch.tensor([0.,5.],device = self.device)
+        self.root_states[env_ids,7:9] = low + (high-low)*torch.rand_like(low)
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_actor_root_state_tensor_indexed(self.sim,
                                                      gymtorch.unwrap_tensor(self.root_states),
@@ -94,12 +97,13 @@ class go2Robot(LeggedRobot):
                                     self.projected_gravity,
                                     # self.commands[:, :3] * self.commands_scale,
                                     #change to relative position
-                                    self.relative_pos,
+                                    # self.relative_pos,
+                                    self.base_pos,
                                     self.heading.unsqueeze(-1),
                                     (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
                                     # (self.dof_pos) * self.obs_scales.dof_pos,   #change to absolute value
                                     self.dof_vel * self.obs_scales.dof_vel,
-                                    self.actions
+                                    self.actions,
                                     ),dim=-1)
         # self.privileged_obs_buf = torch.cat((
         #                             self.dof_pos,   #change to absolute value
@@ -110,10 +114,52 @@ class go2Robot(LeggedRobot):
         if self.add_noise:
             self.obs_buf += (2 * torch.rand_like(self.obs_buf) - 1) * self.noise_scale_vec
 
+    def reset_idx(self, env_ids):
+        """ Reset some environments.
+            Calls self._reset_dofs(env_ids), self._reset_root_states(env_ids), and self._resample_commands(env_ids)
+            [Optional] calls self._update_terrain_curriculum(env_ids), self.update_command_curriculum(env_ids) and
+            Logs episode info
+            Resets some buffers
+
+        Args:
+            env_ids (list[int]): List of environment ids which must be reset
+        """
+        if len(env_ids) == 0:
+            return
+        
+        if self.cfg.terrain.curriculum:
+            self._update_terrain_curriculum(env_ids)
+        
+        # reset robot states
+        self._reset_dofs(env_ids)
+        self._reset_root_states(env_ids)
+
+        self._resample_commands(env_ids)
+
+        # reset buffers
+        self.actions[env_ids] = 0.
+        self.last_actions[env_ids] = 0.
+        self.last_dof_vel[env_ids] = 0.
+        self.feet_air_time[env_ids] = 0.
+        self.episode_length_buf[env_ids] = 0
+        self.reset_buf[env_ids] = 1
+        # fill extras
+        self.extras["episode"] = {}
+        for key in self.episode_sums.keys():
+            self.extras["episode"]['rew_' + key] = torch.mean(self.episode_sums[key][env_ids]) / self.max_episode_length_s
+            self.episode_sums[key][env_ids] = 0.
+        if self.cfg.commands.curriculum:
+            self.extras["episode"]["max_command_x"] = self.command_ranges["lin_vel_x"][1]
+        # send timeout info to the algorithm
+        if self.cfg.env.send_timeouts:
+            self.extras["time_outs"] = self.time_out_buf
+
     def _update_terrain_curriculum(self,env_ids):
         if not self.init_done:
             return
-        
+        move_up = self.episode_sums["final"][env_ids]/self.cfg.rewards.scales.final > 0.95
+        self.curriculum_level[env_ids] += 1*move_up
+        self.curriculum_level = torch.clamp(self.curriculum_level,max=3)    
 
     def _create_envs(self):
         """ Creates environments:
@@ -203,15 +249,15 @@ class go2Robot(LeggedRobot):
         wall_poses = [wall1_pose,wall2_pose,wall3_pose]
 
         # 设置球颜色（可选）
-        # sphere_geom_params = gymapi.AssetOptions()
-        # sphere_geom_params.disable_gravity = True   # 不受重力影响
-        # sphere_geom_params.fix_base_link = True     # 固定不动
-        # # 创建 asset（球体）
-        # sphere_asset = self.gym.create_sphere(self.sim,0.2, sphere_geom_params)
-        # # 设定球位置
-        # sphere_pose = gymapi.Transform()
-        # sphere_pose.p = gymapi.Vec3(0, 0.0, 0.0)   # x,y,z 位置
-        # sphere_pose.r = gymapi.Quat(0,0,0,1)         # 无旋转
+        sphere_geom_params = gymapi.AssetOptions()
+        sphere_geom_params.disable_gravity = True   # 不受重力影响
+        sphere_geom_params.fix_base_link = True     # 固定不动
+        # 创建 asset（球体）
+        sphere_asset = self.gym.create_sphere(self.sim,0.2, sphere_geom_params)
+        # 设定球位置
+        sphere_pose = gymapi.Transform()
+        sphere_pose.p = gymapi.Vec3(4.8, 4.8, 0.0)   # x,y,z 位置
+        sphere_pose.r = gymapi.Quat(0,0,0,1)         # 无旋转
         for i in range(self.num_envs):
             # create env instance
             env_handle = self.gym.create_env(self.sim, env_lower, env_upper, int(np.sqrt(self.num_envs)))
@@ -243,6 +289,7 @@ class go2Robot(LeggedRobot):
             self.termination_contact_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], termination_contact_names[i])
         
         # table_handle = self.gym.create_actor(env_handle, table_asset, table_pose, "table", -1, 1)
+        # self.gym.create_actor(env_handle, sphere_asset, sphere_pose, "table", -2, 1)
         #create obstacles
         for i,env  in enumerate(self.envs):
             pos = self.env_origins[i].clone()
@@ -284,16 +331,21 @@ class go2Robot(LeggedRobot):
         x_error = self.x_error
         y_error = self.y_error
         y_error1 = torch.square(self.relative_pos[:,1])
-        reward_phase_2 = torch.where(x_error<0.125, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*2, - y_error1)
+        reward_phase_2 = torch.where(x_error<0.25, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*2 + torch.exp(-y_error)*2, - y_error1)
         return reward_phase_2
 
     
     def _reward_tracking_heading(self):
         # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
         x_error = self.x_error
-        desired_y = torch.where(x_error<0.125, self.cfg.env.desired_y,0)
+        desired_y = torch.where(x_error<0.25, self.cfg.env.desired_y,0)
         desired_heading = torch.atan2(desired_y-self.relative_pos[:,1],self.cfg.env.desired_x-self.relative_pos[:,0])
         reward = -torch.square(desired_heading-self.heading)
+        return reward
+    
+    def _reward_still(self):
+        joint_vel = torch.sum(torch.square(self.base_lin_vel[:,:2]),dim=1)
+        reward = torch.where(joint_vel < 0.5, torch.ones_like(joint_vel), torch.zeros_like(joint_vel))
         return reward
 
     def _reward_final(self):

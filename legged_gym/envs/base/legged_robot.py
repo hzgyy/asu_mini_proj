@@ -496,6 +496,7 @@ class LeggedRobot(BaseTask):
         self.success = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
         self.x_error = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
         self.y_error = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
+        self.curriculum_level = torch.zeros((self.num_envs,),dtype=torch.float, device=self.device, requires_grad=False)
       
 
         # joint positions offsets and PD gains

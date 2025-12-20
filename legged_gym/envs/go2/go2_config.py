@@ -3,7 +3,9 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 class GO2RoughCfg( LeggedRobotCfg ):
     class init_state( LeggedRobotCfg.init_state ):
         #original
-        pos = [0.0, 0.0, 0.42] # x,y,z [m]
+        # pos = [0.0, 0.0, 0.42] # x,y,z [m]
+        pos = [4.8, 3.8, 0.42] # x,y,z [m]
+        rot = [0,0,0.7071068,0.7071068]
         default_joint_angles = { # = target angles [rad] when action = 0.0
             'FL_hip_joint': 0.1,   # [rad]
             'RL_hip_joint': 0.1,   # [rad]
@@ -57,9 +59,13 @@ class GO2RoughCfg( LeggedRobotCfg ):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/go2/urdf/go2.urdf'
         name = "go2"
         foot_name = "foot"
-        penalize_contacts_on = ["thigh", "calf"]
-        terminate_after_contacts_on = ["base"]
+        penalize_contacts_on = ["base","thigh", "calf","hip","Head"]
+        # penalize_contacts_on = []
+        terminate_after_contacts_on = ["base","thigh", "calf","hip","Head"]
         self_collisions = 0 # 1 to disable, 0 to enable...bitwise filter
+
+    class domain_rand( LeggedRobotCfg.domain_rand):
+        push = False
   
     # class rewards( LeggedRobotCfg.rewards ):
     #     soft_dof_pos_limit = 0.9task_registry.register( "go2", LeggedRobot, GO2RoughCfg(), GO2RoughCfgPPO())
@@ -77,27 +83,29 @@ class GO2RoughCfg( LeggedRobotCfg ):
         class scales( LeggedRobotCfg.rewards.scales ):
             torques = -0.0002
             dof_pos_limits = -1.0
-            base_height = -30.
+            base_height = -50.
             lin_vel_z = -1
-            collision = -5
-            feet_air_time = 1.
+            collision = -1
+            feet_air_time = 0.5
             tracking_lin_vel = 0.
             tracking_ang_vel = 0.
             tracking_pos = 5.0*1.5
             tracking_pos2 = 5.0*1.5
             tracking_heading = 1.0
+            still = -5.
             final = 50.0
     
     class env( LeggedRobotCfg.env ):
         num_observations = 55
         num_actions = 14
-        episode_length_s = 20
+        episode_length_s = 10
         env_spacing = 10
         desired_x = 4.8
         desired_y = 4.8
 
     class terrain( LeggedRobotCfg.terrain ):
         mesh_type = "plane"
+        curriculum = False
             
     #standup policy
     # class rewards( LeggedRobotCfg.rewards ):
@@ -133,5 +141,6 @@ class GO2RoughCfgPPO( LeggedRobotCfgPPO ):
     class runner( LeggedRobotCfgPPO.runner ):
         run_name = ''
         experiment_name = 'rough_go2'
+        save_interval = 100
 
   
