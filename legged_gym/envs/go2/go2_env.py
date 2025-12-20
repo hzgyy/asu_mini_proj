@@ -270,10 +270,13 @@ class go2Robot(LeggedRobot):
         self.time_out_buf = self.episode_length_buf > self.max_episode_length # no terminal reward for time-outs
         self.reset_buf |= self.time_out_buf
         self.reset_buf |= self.success
+        # a = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
+        # b = torch.logical_or(torch.abs(self.rpy[:,1])>1.0, torch.abs(self.rpy[:,0])>0.8)
+        # print(a,b,self.time_out_buf,self.success,self.reset_buf)
 
 
     def _reward_tracking_pos(self):
-        # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+        # x_error = torch.abs(self.relative_pos[:,0]-self.cfg.env.desired_x)
         x_error = self.x_error
         reward_phase_1 = torch.exp(-x_error/self.cfg.rewards.tracking_sigma)
         return reward_phase_1
@@ -288,6 +291,25 @@ class go2Robot(LeggedRobot):
         # reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*self.cfg.rewards.pos2_scale, - y_error1)
         reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(y_error2/2.5)*self.cfg.rewards.pos2_scale, - y_error1)
         return reward_phase_2
+
+    # def _reward_tracking_pos(self):
+    #     # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+    #     # x_error = self.x_error
+    #     reward_phase_1 = torch.abs(self.relative_pos[:,0]-self.cfg.env.desired_x)
+    #     return reward_phase_1
+    
+    # def _reward_tracking_pos2(self):
+    #     # x_error = torch.square(self.relative_pos[:,0]-self.cfg.env.desired_x)
+    #     # y_error = torch.square(self.relative_pos[:,1]-self.cfg.env.desired_y)
+    #     # x_error = torch.abs(self.relative_pos[:,0]-self.cfg.env.desired_x)
+    #     # y_error = self.y_error
+    #     # y_error1 = torch.square(self.relative_pos[:,1])
+    #     x_error = self.x_error
+    #     y_error1 = torch.abs(self.relative_pos[:,1])
+    #     y_error2 = torch.abs(self.relative_pos[:,1]-self.cfg.env.desired_y)
+    #     # reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*self.cfg.rewards.pos2_scale, - y_error1)
+    #     reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, y_error2*self.cfg.rewards.pos2_scale, y_error1+self.cfg.env.desired_y)
+    #     return reward_phase_2
 
     
     def _reward_tracking_heading(self):
@@ -310,5 +332,5 @@ class go2Robot(LeggedRobot):
     
     def _reward_speed(self):
         speed = torch.sum(torch.square(self.base_lin_vel[:,:2]),dim=1)
-        reward = torch.exp(-speed*2)
+        reward = torch.where(self.x_error<self.cfg.env.turn_threshold,torch.exp(-speed*2),torch.zeros_like(speed))
         return reward
