@@ -270,6 +270,11 @@ class go2Robot(LeggedRobot):
         self.time_out_buf = self.episode_length_buf > self.max_episode_length # no terminal reward for time-outs
         self.reset_buf |= self.time_out_buf
         self.reset_buf |= self.success
+        # assert False,f"{type(self.reset_buf),self.reset_buf.shape}"
+        #obj
+        obj_contact_buf = torch.any(torch.norm(self.obj_contact_forces[:, :, :], dim=-1) > 1., dim=1)
+        self.reset_buf |= obj_contact_buf
+        # print(obj_contact_buf)
         # a = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1., dim=1)
         # b = torch.logical_or(torch.abs(self.rpy[:,1])>1.0, torch.abs(self.rpy[:,0])>0.8)
         # print(a,b,self.time_out_buf,self.success,self.reset_buf)
@@ -289,7 +294,7 @@ class go2Robot(LeggedRobot):
         y_error1 = torch.square(self.relative_pos[:,1])
         y_error2 = torch.abs(self.relative_pos[:,1])
         # reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(-y_error/self.cfg.rewards.tracking_sigma)*self.cfg.rewards.pos2_scale, - y_error1)
-        reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(y_error2/2.5)*self.cfg.rewards.pos2_scale, - y_error1)
+        reward_phase_2 = torch.where(x_error<self.cfg.env.turn_threshold, torch.exp(y_error2/2)*self.cfg.rewards.pos2_scale, - y_error1*4)
         return reward_phase_2
 
     # def _reward_tracking_pos(self):

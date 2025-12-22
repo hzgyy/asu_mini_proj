@@ -213,7 +213,7 @@ Stephen Brawner (brawner@gmail.com)
         xyz="-0.04 0 0"
         rpy="0 0 0" />
       <mass
-        value="0" />
+        value="0.92" />
       <inertia
         ixx="1.65E-03"
         ixy="0"

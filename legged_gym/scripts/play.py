@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append('/media/mani/Data/gyy_workspace/asu_mini_proj/unitree_rl_gym')
+sys.path.append('/root/autodl-tmp/asu_mini_proj/unitree_rl_gym/')
 from legged_gym import LEGGED_GYM_ROOT_DIR
 from legged_gym import LEGGED_GYM_ROOT_DIR
 import isaacgym

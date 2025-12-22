@@ -287,7 +287,8 @@ class LeggedRobot(BaseTask):
         # randomize base mass
         if self.cfg.domain_rand.randomize_base_mass:
             rng = self.cfg.domain_rand.added_mass_range
-            props[0].mass += np.random.uniform(rng[0], rng[1])
+            # props[0].mass += np.random.uniform(rng[0], rng[1])
+            props[0].mass *= np.random.uniform(0.9, 1.1)
         return props
     
     def _post_physics_step_callback(self):
@@ -467,6 +468,11 @@ class LeggedRobot(BaseTask):
         self.rpy = get_euler_xyz_in_tensor(self.base_quat)
         self.base_pos = self.root_states[:self.num_envs, 0:3]
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces)[:self.num_envs*23].view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
+        self.obj_contact_forces = gymtorch.wrap_tensor(net_contact_forces)[self.num_envs*23:].view(self.num_envs, 3, 3) # shape: num_envs, num_bodies, xyz axis
+        # dof_names = self.gym.get_actor_dof_names(self.envs[0], self.actor_handles[0])
+        # for i, name in enumerate(dof_names):
+        #     print(f"Index {i}: {name}")
+        # assert False
 
         # initialize some data used later on
         self.common_step_counter = 0
