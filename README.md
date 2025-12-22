@@ -1,3 +1,24 @@
+## Introduction
+Build upon Unitree RL Gym repo. Here are modifications I made:
+
+Customed training environment in `unitree_rl_gym/legged_gym/envs/go2/go2_env.py`.
+
+Config of the go2 robot is in `unitree_rl_gym/legged_gym/envs/go2/go2_config.py`.
+
+Change the default environment in `/media/mani/Data/gyy_workspace/asu_mini_proj/unitree_rl_gym/legged_gym/envs/base/legged_robot.py`
+
+## Usage
+For install, please follow the instruction of the default repo. Typically you need isaac gym, rsl_rl.
+
+For test, put the pretrained model's weight into `unitree_rl_gym/logs/rough_go2/run_name/model_xxxx.pt`
+
+Change the line 3 in `unitree_rl_gym/legged_gym/scripts/play.py` to the path of your unitree rl gym root
+
+Then run:
+```
+python -m scripts.play --task=go2 --num_envs=1 --load_run run_name --checkpoint xxxx
+```
+
 <div align="center">
   <h1 align="center">Unitree RL GYM</h1>
   <p align="center">
@@ -18,6 +39,8 @@
 </div>
 
 ---
+
+
 
 ## 📦 Installation and Configuration
 

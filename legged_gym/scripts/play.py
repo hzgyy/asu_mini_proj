@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append('/root/autodl-tmp/asu_mini_proj/unitree_rl_gym/')
+sys.path.append('/media/mani/Data/gyy_workspace/asu_mini_proj/unitree_rl_gym/')
 from legged_gym import LEGGED_GYM_ROOT_DIR
 from legged_gym import LEGGED_GYM_ROOT_DIR
 import isaacgym
@@ -37,10 +37,12 @@ def play(args):
         path = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'policies')
         export_policy_as_jit(ppo_runner.alg.actor_critic, path)
         print('Exported policy as jit script to: ', path)
-
-    for i in range(10*int(env.max_episode_length)):
+    
+    torques = torch.zeros((int(env.max_episode_length),14), device=env.device)
+    for i in range(1*int(env.max_episode_length)):
         actions = policy(obs.detach())
-        obs, _, rews, dones, infos = env.step(actions.detach())
+        obs, torques[i], rews, dones, infos = env.step(actions.detach())
+    torch.save(torques, 'isaac_torques.pt')
 
 if __name__ == '__main__':
     EXPORT_POLICY = True

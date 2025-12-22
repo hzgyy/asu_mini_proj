@@ -73,7 +73,7 @@ class GO2RoughCfg( LeggedRobotCfg ):
         soft_dof_pos_limit = 0.9
         soft_dof_vel_limit = 0.9
         base_height_target = 0.3
-        max_contact_force = 125.
+        max_contact_force = 150.
         tracking_sigma = 10
         only_positive_rewards = False
         pos2_scale = 4.0
@@ -87,18 +87,14 @@ class GO2RoughCfg( LeggedRobotCfg ):
             ang_vel_xy = -0.02
             action_rate = -0.005
             dof_acc = -1.25e-7
-            feet_air_time = 2.0
+            feet_air_time = 1.5
             tracking_lin_vel = 0.
             tracking_ang_vel = 0.
-            tracking_pos = 5.0*1.5
-            tracking_pos2 = 5.0*1.5
-            # tracking_pos = -2.5
-            # tracking_pos2 = -2.5
-            tracking_heading = 3.0
+            tracking_pos = 7.5
+            tracking_pos2 = 7.5
+            tracking_heading = 2.0
             final = 5000.0
-            speed = 0.
-            dof_vel = -0.0005
-            orientation = -0.
+            
     
     class env( LeggedRobotCfg.env ):
         num_observations = 55
